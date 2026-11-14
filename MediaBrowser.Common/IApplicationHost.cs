@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaBrowser.Common
 {
@@ -10,7 +10,7 @@ namespace MediaBrowser.Common
     /// </summary>
     /// <param name="type">Type to create.</param>
     /// <returns>New instance of type <param>type</param>.</returns>
-    public delegate object CreationDelegateFactory(Type type);
+    public delegate object? CreationDelegateFactory(Type type);
 
     /// <summary>
     /// An interface to be implemented by the applications hosting a kernel.
@@ -20,7 +20,7 @@ namespace MediaBrowser.Common
         /// <summary>
         /// Occurs when [has pending restart changed].
         /// </summary>
-        event EventHandler HasPendingRestartChanged;
+        event EventHandler? HasPendingRestartChanged;
 
         /// <summary>
         /// Gets the name.
@@ -35,22 +35,15 @@ namespace MediaBrowser.Common
         string SystemId { get; }
 
         /// <summary>
-        /// Gets a value indicating whether this instance has pending kernel reload.
+        /// Gets a value indicating whether this instance has pending changes requiring a restart.
         /// </summary>
-        /// <value><c>true</c> if this instance has pending kernel reload; otherwise, <c>false</c>.</value>
+        /// <value><c>true</c> if this instance has a pending restart; otherwise, <c>false</c>.</value>
         bool HasPendingRestart { get; }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is currently shutting down.
+        /// Gets or sets a value indicating whether the application should restart.
         /// </summary>
-        /// <value><c>true</c> if this instance is shutting down; otherwise, <c>false</c>.</value>
-        bool IsShuttingDown { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether this instance can self restart.
-        /// </summary>
-        /// <value><c>true</c> if this instance can self restart; otherwise, <c>false</c>.</value>
-        bool CanSelfRestart { get; }
+        bool ShouldRestart { get; set; }
 
         /// <summary>
         /// Gets the application version.
@@ -61,7 +54,7 @@ namespace MediaBrowser.Common
         /// <summary>
         /// Gets or sets the service provider.
         /// </summary>
-        IServiceProvider ServiceProvider { get; set; }
+        IServiceProvider? ServiceProvider { get; set; }
 
         /// <summary>
         /// Gets the application version.
@@ -91,11 +84,6 @@ namespace MediaBrowser.Common
         /// Notifies the pending restart.
         /// </summary>
         void NotifyPendingRestart();
-
-        /// <summary>
-        /// Restarts this instance.
-        /// </summary>
-        void Restart();
 
         /// <summary>
         /// Gets the exports.
@@ -129,21 +117,9 @@ namespace MediaBrowser.Common
         T Resolve<T>();
 
         /// <summary>
-        /// Shuts down.
-        /// </summary>
-        /// <returns>A task.</returns>
-        Task Shutdown();
-
-        /// <summary>
         /// Initializes this instance.
         /// </summary>
-        void Init();
-
-        /// <summary>
-        /// Creates the instance.
-        /// </summary>
-        /// <param name="type">The type.</param>
-        /// <returns>System.Object.</returns>
-        object CreateInstance(Type type);
+        /// <param name="serviceCollection">Instance of the <see cref="IServiceCollection"/> interface.</param>
+        void Init(IServiceCollection serviceCollection);
     }
 }

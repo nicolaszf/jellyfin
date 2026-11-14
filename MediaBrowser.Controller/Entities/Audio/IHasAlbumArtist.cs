@@ -1,3 +1,5 @@
+#nullable disable
+
 #pragma warning disable CS1591
 
 using System.Collections.Generic;
@@ -20,7 +22,7 @@ namespace MediaBrowser.Controller.Entities.Audio
         IReadOnlyList<string> Artists { get; set; }
     }
 
-    public static class Extentions
+    public static class Extensions
     {
         public static IEnumerable<string> GetAllArtists<T>(this T item)
             where T : IHasArtist, IHasAlbumArtist

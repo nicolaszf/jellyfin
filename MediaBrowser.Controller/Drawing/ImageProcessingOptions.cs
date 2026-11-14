@@ -1,3 +1,5 @@
+#nullable disable
+
 #pragma warning disable CS1591
 
 using System;
@@ -39,8 +41,6 @@ namespace MediaBrowser.Controller.Drawing
         public int Quality { get; set; }
 
         public IReadOnlyCollection<ImageFormat> SupportedOutputFormats { get; set; }
-
-        public bool AddPlayedIndicator { get; set; }
 
         public int? UnplayedCount { get; set; }
 
@@ -109,7 +109,6 @@ namespace MediaBrowser.Controller.Drawing
         {
             return (Quality >= 90) &&
                 IsFormatSupported(originalImagePath) &&
-                !AddPlayedIndicator &&
                 PercentPlayed.Equals(0) &&
                 !UnplayedCount.HasValue &&
                 !Blur.HasValue &&
@@ -120,7 +119,8 @@ namespace MediaBrowser.Controller.Drawing
         private bool IsFormatSupported(string originalImagePath)
         {
             var ext = Path.GetExtension(originalImagePath);
-            return SupportedOutputFormats.Any(outputFormat => string.Equals(ext, "." + outputFormat, StringComparison.OrdinalIgnoreCase));
+            ext = ext.Replace(".jpeg", ".jpg", StringComparison.OrdinalIgnoreCase);
+            return SupportedOutputFormats.Any(outputFormat => string.Equals(ext, outputFormat.GetExtension(), StringComparison.OrdinalIgnoreCase));
         }
     }
 }

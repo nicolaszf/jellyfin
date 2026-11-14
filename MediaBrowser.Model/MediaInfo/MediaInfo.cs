@@ -51,6 +51,8 @@ namespace MediaBrowser.Model.MediaInfo
 
         public string ShowName { get; set; }
 
+        public string ForcedSortName { get; set; }
+
         public int? IndexNumber { get; set; }
 
         public int? ParentIndexNumber { get; set; }
@@ -58,6 +60,8 @@ namespace MediaBrowser.Model.MediaInfo
         public int? ProductionYear { get; set; }
 
         public DateTime? PremiereDate { get; set; }
+
+        public DateTime? ContainerCreationDate { get; set; }
 
         public BaseItemPerson[] People { get; set; }
 

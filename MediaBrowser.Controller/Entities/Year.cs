@@ -1,3 +1,5 @@
+#nullable disable
+
 #pragma warning disable CS1591
 
 using System;
@@ -11,8 +13,28 @@ namespace MediaBrowser.Controller.Entities
     /// <summary>
     /// Class Year.
     /// </summary>
+    [Common.RequiresSourceSerialisation]
     public class Year : BaseItem, IItemByName
     {
+        [JsonIgnore]
+        public override bool SupportsAncestors => false;
+
+        [JsonIgnore]
+        public override bool SupportsPeople => false;
+
+        /// <summary>
+        /// Gets the folder containing the item.
+        /// If the item is a folder, it returns the folder itself.
+        /// </summary>
+        /// <value>The containing folder path.</value>
+        [JsonIgnore]
+        public override string ContainingFolderPath => Path;
+
+        public override bool CanDelete()
+        {
+            return false;
+        }
+
         public override List<string> GetUserDataKeys()
         {
             var list = base.GetUserDataKeys();
@@ -20,14 +42,6 @@ namespace MediaBrowser.Controller.Entities
             list.Insert(0, "Year-" + Name);
             return list;
         }
-
-        /// <summary>
-        /// Returns the folder containing the item.
-        /// If the item is a folder, it returns the folder itself.
-        /// </summary>
-        /// <value>The containing folder path.</value>
-        [JsonIgnore]
-        public override string ContainingFolderPath => Path;
 
         public override double GetDefaultPrimaryImageAspectRatio()
         {
@@ -37,24 +51,14 @@ namespace MediaBrowser.Controller.Entities
             return value;
         }
 
-        [JsonIgnore]
-        public override bool SupportsAncestors => false;
-
-        public override bool CanDelete()
-        {
-            return false;
-        }
-
         public override bool IsSaveLocalMetadataEnabled()
         {
             return true;
         }
 
-        public IList<BaseItem> GetTaggedItems(InternalItemsQuery query)
+        public IReadOnlyList<BaseItem> GetTaggedItems(InternalItemsQuery query)
         {
-            var usCulture = new CultureInfo("en-US");
-
-            if (!int.TryParse(Name, NumberStyles.Integer, usCulture, out var year))
+            if (!int.TryParse(Name, NumberStyles.Integer, CultureInfo.InvariantCulture, out var year))
             {
                 return new List<BaseItem>();
             }
@@ -74,9 +78,6 @@ namespace MediaBrowser.Controller.Entities
             return null;
         }
 
-        [JsonIgnore]
-        public override bool SupportsPeople => false;
-
         public static string GetPath(string name)
         {
             return GetPath(name, true);
@@ -84,10 +85,7 @@ namespace MediaBrowser.Controller.Entities
 
         public static string GetPath(string name, bool normalizeName)
         {
-            // Trim the period at the end because windows will have a hard time with that
-            var validName = normalizeName ?
-                FileSystem.GetValidFilename(name).Trim().TrimEnd('.') :
-                name;
+            var validName = normalizeName ? GetItemByNameFolderName(name) : name;
 
             return System.IO.Path.Combine(ConfigurationManager.ApplicationPaths.YearPath, validName);
         }
@@ -110,11 +108,13 @@ namespace MediaBrowser.Controller.Entities
         }
 
         /// <summary>
-        /// This is called before any metadata refresh and returns true or false indicating if changes were made.
+        /// This is called before any metadata refresh and returns true if changes were made.
         /// </summary>
-        public override bool BeforeMetadataRefresh(bool replaceAllMetdata)
+        /// <param name="replaceAllMetadata">Whether to replace all metadata.</param>
+        /// <returns>true if the item has change, else false.</returns>
+        public override bool BeforeMetadataRefresh(bool replaceAllMetadata)
         {
-            var hasChanges = base.BeforeMetadataRefresh(replaceAllMetdata);
+            var hasChanges = base.BeforeMetadataRefresh(replaceAllMetadata);
 
             var newPath = GetRebasedPath();
             if (!string.Equals(Path, newPath, StringComparison.Ordinal))

@@ -4,107 +4,103 @@ using System.Threading;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Emby.Server.Implementations.ScheduledTasks
+namespace Emby.Server.Implementations.ScheduledTasks.Triggers;
+
+/// <summary>
+/// Represents a task trigger that runs repeatedly on an interval.
+/// </summary>
+public sealed class IntervalTrigger : ITaskTrigger, IDisposable
 {
+    private readonly TimeSpan _interval;
+    private DateTime _lastStartDate;
+    private Timer? _timer;
+    private bool _disposed;
+
     /// <summary>
-    /// Represents a task trigger that runs repeatedly on an interval.
+    /// Initializes a new instance of the <see cref="IntervalTrigger"/> class.
     /// </summary>
-    public class IntervalTrigger : ITaskTrigger
+    /// <param name="interval">The interval.</param>
+    /// <param name="taskOptions">The options of this task.</param>
+    public IntervalTrigger(TimeSpan interval, TaskOptions taskOptions)
     {
-        private DateTime _lastStartDate;
+        _interval = interval;
+        TaskOptions = taskOptions;
+    }
 
-        /// <summary>
-        /// Occurs when [triggered].
-        /// </summary>
-        public event EventHandler<EventArgs> Triggered;
+    /// <inheritdoc />
+    public event EventHandler<EventArgs>? Triggered;
 
-        /// <summary>
-        /// Gets or sets the interval.
-        /// </summary>
-        /// <value>The interval.</value>
-        public TimeSpan Interval { get; set; }
+    /// <inheritdoc />
+    public TaskOptions TaskOptions { get; }
 
-        /// <summary>
-        /// Gets or sets the options of this task.
-        /// </summary>
-        public TaskOptions TaskOptions { get; set; }
+    /// <inheritdoc />
+    public void Start(TaskResult? lastResult, ILogger logger, string taskName, bool isApplicationStartup)
+    {
+        DisposeTimer();
 
-        /// <summary>
-        /// Gets or sets the timer.
-        /// </summary>
-        /// <value>The timer.</value>
-        private Timer Timer { get; set; }
+        DateTime now = DateTime.UtcNow;
+        DateTime triggerDate;
 
-        /// <summary>
-        /// Stars waiting for the trigger action.
-        /// </summary>
-        /// <param name="lastResult">The last result.</param>
-        /// <param name="logger">The logger.</param>
-        /// <param name="taskName">The name of the task.</param>
-        /// <param name="isApplicationStartup">if set to <c>true</c> [is application startup].</param>
-        public void Start(TaskResult lastResult, ILogger logger, string taskName, bool isApplicationStartup)
+        if (lastResult is null)
         {
-            DisposeTimer();
-
-            DateTime triggerDate;
-
-            if (lastResult == null)
-            {
-                // Task has never been completed before
-                triggerDate = DateTime.UtcNow.AddHours(1);
-            }
-            else
-            {
-                triggerDate = new[] { lastResult.EndTimeUtc, _lastStartDate }.Max().Add(Interval);
-            }
-
-            if (DateTime.UtcNow > triggerDate)
-            {
-                triggerDate = DateTime.UtcNow.AddMinutes(1);
-            }
-
-            var dueTime = triggerDate - DateTime.UtcNow;
-            var maxDueTime = TimeSpan.FromDays(7);
-
-            if (dueTime > maxDueTime)
-            {
-                dueTime = maxDueTime;
-            }
-
-            Timer = new Timer(state => OnTriggered(), null, dueTime, TimeSpan.FromMilliseconds(-1));
+            // Task has never been completed before
+            triggerDate = now.AddHours(1);
+        }
+        else
+        {
+            triggerDate = new[] { lastResult.EndTimeUtc, _lastStartDate, now.AddMinutes(1) }.Max().Add(_interval);
         }
 
-        /// <summary>
-        /// Stops waiting for the trigger action.
-        /// </summary>
-        public void Stop()
+        var dueTime = triggerDate - now;
+        var maxDueTime = TimeSpan.FromDays(7);
+
+        if (dueTime > maxDueTime)
         {
-            DisposeTimer();
+            dueTime = maxDueTime;
         }
 
-        /// <summary>
-        /// Disposes the timer.
-        /// </summary>
-        private void DisposeTimer()
+        _timer = new Timer(_ => OnTriggered(), null, dueTime, TimeSpan.FromMilliseconds(-1));
+    }
+
+    /// <inheritdoc />
+    public void Stop()
+    {
+        DisposeTimer();
+    }
+
+    /// <summary>
+    /// Disposes the timer.
+    /// </summary>
+    private void DisposeTimer()
+    {
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    /// <summary>
+    /// Called when [triggered].
+    /// </summary>
+    private void OnTriggered()
+    {
+        DisposeTimer();
+
+        if (Triggered is not null)
         {
-            if (Timer != null)
-            {
-                Timer.Dispose();
-            }
+            _lastStartDate = DateTime.UtcNow;
+            Triggered(this, EventArgs.Empty);
+        }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
         }
 
-        /// <summary>
-        /// Called when [triggered].
-        /// </summary>
-        private void OnTriggered()
-        {
-            DisposeTimer();
+        DisposeTimer();
 
-            if (Triggered != null)
-            {
-                _lastStartDate = DateTime.UtcNow;
-                Triggered(this, EventArgs.Empty);
-            }
-        }
+        _disposed = true;
     }
 }

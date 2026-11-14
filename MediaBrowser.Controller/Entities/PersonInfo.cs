@@ -1,7 +1,10 @@
-#pragma warning disable CS1591
+#nullable disable
+
+#pragma warning disable CA2227, CS1591
 
 using System;
 using System.Collections.Generic;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Model.Entities;
 
 namespace MediaBrowser.Controller.Entities
@@ -14,7 +17,13 @@ namespace MediaBrowser.Controller.Entities
         public PersonInfo()
         {
             ProviderIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            Id = Guid.NewGuid();
         }
+
+        /// <summary>
+        /// Gets or Sets the PersonId.
+        /// </summary>
+        public Guid Id { get; set; }
 
         public Guid ItemId { get; set; }
 
@@ -34,7 +43,7 @@ namespace MediaBrowser.Controller.Entities
         /// Gets or sets the type.
         /// </summary>
         /// <value>The type.</value>
-        public string Type { get; set; }
+        public PersonKind Type { get; set; }
 
         /// <summary>
         /// Gets or sets the ascending sort order.
@@ -55,10 +64,6 @@ namespace MediaBrowser.Controller.Entities
             return Name;
         }
 
-        public bool IsType(string type)
-        {
-            return string.Equals(Type, type, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(Role, type, StringComparison.OrdinalIgnoreCase);
-        }
+        public bool IsType(PersonKind type) => Type == type || string.Equals(type.ToString(), Role, StringComparison.OrdinalIgnoreCase);
     }
 }

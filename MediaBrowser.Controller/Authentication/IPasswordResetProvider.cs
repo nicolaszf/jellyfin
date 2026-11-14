@@ -2,7 +2,7 @@
 
 using System;
 using System.Threading.Tasks;
-using Jellyfin.Data.Entities;
+using Jellyfin.Database.Implementations.Entities;
 using MediaBrowser.Model.Users;
 
 namespace MediaBrowser.Controller.Authentication
@@ -13,11 +13,12 @@ namespace MediaBrowser.Controller.Authentication
 
         bool IsEnabled { get; }
 
-        Task<ForgotPasswordResult> StartForgotPasswordProcess(User user, bool isInNetwork);
+        Task<ForgotPasswordResult> StartForgotPasswordProcess(User? user, string enteredUsername, bool isInNetwork);
 
         Task<PinRedeemResult> RedeemPasswordResetPin(string pin);
     }
 
+#nullable disable
     public class PasswordPinCreationResult
     {
         public string PinFile { get; set; }

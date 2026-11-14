@@ -1,3 +1,5 @@
+using System;
+
 namespace MediaBrowser.Model.Extensions
 {
     /// <summary>
@@ -17,21 +19,19 @@ namespace MediaBrowser.Model.Extensions
                 return str;
             }
 
-            if (char.IsUpper(str[0]))
+            // We check IsLower instead of IsUpper because both return false for non-letters
+            if (!char.IsLower(str[0]))
             {
                 return str;
             }
 
             return string.Create(
                 str.Length,
-                str,
+                str.AsSpan(),
                 (chars, buf) =>
                 {
                     chars[0] = char.ToUpperInvariant(buf[0]);
-                    for (int i = 1; i < chars.Length; i++)
-                    {
-                        chars[i] = buf[i];
-                    }
+                    buf.Slice(1).CopyTo(chars.Slice(1));
                 });
         }
     }

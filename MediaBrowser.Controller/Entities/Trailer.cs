@@ -1,4 +1,6 @@
-#pragma warning disable CS1591
+#nullable disable
+
+#pragma warning disable CA1819, CS1591
 
 using System;
 using System.Collections.Generic;
@@ -43,11 +45,11 @@ namespace MediaBrowser.Controller.Entities
             return info;
         }
 
-        public override bool BeforeMetadataRefresh(bool replaceAllMetdata)
+        public override bool BeforeMetadataRefresh(bool replaceAllMetadata)
         {
-            var hasChanges = base.BeforeMetadataRefresh(replaceAllMetdata);
+            var hasChanges = base.BeforeMetadataRefresh(replaceAllMetadata);
 
-            if (!ProductionYear.HasValue)
+            if (ProductionYear is null)
             {
                 var info = LibraryManager.ParseName(Name);
 
@@ -78,25 +80,5 @@ namespace MediaBrowser.Controller.Entities
 
             return hasChanges;
         }
-
-        public override List<ExternalUrl> GetRelatedUrls()
-        {
-            var list = base.GetRelatedUrls();
-
-            var imdbId = this.GetProviderId(MetadataProvider.Imdb);
-            if (!string.IsNullOrEmpty(imdbId))
-            {
-                list.Add(new ExternalUrl
-                {
-                    Name = "Trakt",
-                    Url = string.Format(CultureInfo.InvariantCulture, "https://trakt.tv/movies/{0}", imdbId)
-                });
-            }
-
-            return list;
-        }
-
-        [JsonIgnore]
-        public override bool StopRefreshIfLocalMetadataFound => false;
     }
 }

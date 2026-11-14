@@ -1,18 +1,16 @@
-#pragma warning disable CS1591
-
-#nullable enable
-
 using System;
 using System.Net;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
-using MediaBrowser.Model.Net;
-using Microsoft.AspNetCore.Http;
+using MediaBrowser.Controller.Net.WebSocketMessages;
 
 namespace MediaBrowser.Controller.Net
 {
-    public interface IWebSocketConnection
+    /// <summary>
+    /// Interface for WebSocket connections.
+    /// </summary>
+    public interface IWebSocketConnection : IAsyncDisposable, IDisposable
     {
         /// <summary>
         /// Occurs when [closed].
@@ -26,16 +24,10 @@ namespace MediaBrowser.Controller.Net
         DateTime LastActivityDate { get; }
 
         /// <summary>
-        /// Gets or sets the date of last Keeplive received.
+        /// Gets or sets the date of last Keepalive received.
         /// </summary>
-        /// <value>The date of last Keeplive received.</value>
+        /// <value>The date of last Keepalive received.</value>
         DateTime LastKeepAliveDate { get; set; }
-
-        /// <summary>
-        /// Gets or sets the query string.
-        /// </summary>
-        /// <value>The query string.</value>
-        IQueryCollection QueryString { get; }
 
         /// <summary>
         /// Gets or sets the receive action.
@@ -50,6 +42,11 @@ namespace MediaBrowser.Controller.Net
         WebSocketState State { get; }
 
         /// <summary>
+        /// Gets the authorization information.
+        /// </summary>
+        public AuthorizationInfo AuthorizationInfo { get; }
+
+        /// <summary>
         /// Gets the remote end point.
         /// </summary>
         /// <value>The remote end point.</value>
@@ -58,13 +55,36 @@ namespace MediaBrowser.Controller.Net
         /// <summary>
         /// Sends a message asynchronously.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
         /// <param name="message">The message.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Task.</returns>
-        /// <exception cref="ArgumentNullException">message</exception>
-        Task SendAsync<T>(WebSocketMessage<T> message, CancellationToken cancellationToken);
+        /// <exception cref="ArgumentNullException">The message is null.</exception>
+        Task SendAsync(OutboundWebSocketMessage message, CancellationToken cancellationToken);
 
-        Task ProcessAsync(CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Sends a message asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The type of websocket message data.</typeparam>
+        /// <param name="message">The message.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>Task.</returns>
+        /// <exception cref="ArgumentNullException">The message is null.</exception>
+        Task SendAsync<T>(OutboundWebSocketMessage<T> message, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Receives a message asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>Task.</returns>
+        Task ReceiveAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Applies the culture context captured when the connection was established
+        /// (from the upgrade request's <c>Accept-Language</c> header) to the current
+        /// async flow. Server-initiated message senders should call this before
+        /// localising any payload so that the response uses the client's preferred
+        /// language rather than the server default.
+        /// </summary>
+        void ApplyRequestCulture();
     }
 }

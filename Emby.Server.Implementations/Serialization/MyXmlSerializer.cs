@@ -15,11 +15,13 @@ namespace Emby.Server.Implementations.Serialization
     {
         // Need to cache these
         // http://dotnetcodebox.blogspot.com/2013/01/xmlserializer-class-may-result-in.html
-        private static readonly ConcurrentDictionary<string, XmlSerializer> _serializers =
-            new ConcurrentDictionary<string, XmlSerializer>();
+        private readonly ConcurrentDictionary<string, XmlSerializer> _serializers = new();
 
-        private static XmlSerializer GetSerializer(Type type)
-            => _serializers.GetOrAdd(type.FullName, _ => new XmlSerializer(type));
+        private XmlSerializer GetSerializer(Type type)
+            => _serializers.GetOrAdd(
+                type.FullName ?? throw new ArgumentException($"Invalid type {type}."),
+                static (_, t) => new XmlSerializer(t),
+                type);
 
         /// <summary>
         /// Serializes to writer.
@@ -38,7 +40,7 @@ namespace Emby.Server.Implementations.Serialization
         /// <param name="type">The type.</param>
         /// <param name="stream">The stream.</param>
         /// <returns>System.Object.</returns>
-        public object DeserializeFromStream(Type type, Stream stream)
+        public object? DeserializeFromStream(Type type, Stream stream)
         {
             using (var reader = XmlReader.Create(stream))
             {
@@ -69,7 +71,7 @@ namespace Emby.Server.Implementations.Serialization
         /// <param name="file">The file.</param>
         public void SerializeToFile(object obj, string file)
         {
-            using (var stream = new FileStream(file, FileMode.Create))
+            using (var stream = new FileStream(file, FileMode.Create, FileAccess.Write))
             {
                 SerializeToStream(obj, stream);
             }
@@ -81,11 +83,19 @@ namespace Emby.Server.Implementations.Serialization
         /// <param name="type">The type.</param>
         /// <param name="file">The file.</param>
         /// <returns>System.Object.</returns>
-        public object DeserializeFromFile(Type type, string file)
+        public object? DeserializeFromFile(Type type, string file)
         {
-            using (var stream = File.OpenRead(file))
+            try
             {
-                return DeserializeFromStream(type, stream);
+                using (var stream = File.OpenRead(file))
+                {
+                    return DeserializeFromStream(type, stream);
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Data.Add("Filename", file);
+                throw;
             }
         }
 
@@ -95,7 +105,7 @@ namespace Emby.Server.Implementations.Serialization
         /// <param name="type">The type.</param>
         /// <param name="buffer">The buffer.</param>
         /// <returns>System.Object.</returns>
-        public object DeserializeFromBytes(Type type, byte[] buffer)
+        public object? DeserializeFromBytes(Type type, byte[] buffer)
         {
             using (var stream = new MemoryStream(buffer, 0, buffer.Length, false, true))
             {

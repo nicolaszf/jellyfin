@@ -3,109 +3,107 @@ using System.Threading;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Emby.Server.Implementations.ScheduledTasks
+namespace Emby.Server.Implementations.ScheduledTasks.Triggers;
+
+/// <summary>
+/// Represents a task trigger that fires on a weekly basis.
+/// </summary>
+public sealed class WeeklyTrigger : ITaskTrigger, IDisposable
 {
+    private readonly TimeSpan _timeOfDay;
+    private readonly DayOfWeek _dayOfWeek;
+    private Timer? _timer;
+    private bool _disposed;
+
     /// <summary>
-    /// Represents a task trigger that fires on a weekly basis.
+    /// Initializes a new instance of the <see cref="WeeklyTrigger"/> class.
     /// </summary>
-    public class WeeklyTrigger : ITaskTrigger
+    /// <param name="timeOfDay">The time of day to trigger the task to run.</param>
+    /// <param name="dayOfWeek">The day of week.</param>
+    /// <param name="taskOptions">The options of this task.</param>
+    public WeeklyTrigger(TimeSpan timeOfDay, DayOfWeek dayOfWeek, TaskOptions taskOptions)
     {
-        /// <summary>
-        /// Occurs when [triggered].
-        /// </summary>
-        public event EventHandler<EventArgs> Triggered;
+        _timeOfDay = timeOfDay;
+        _dayOfWeek = dayOfWeek;
+        TaskOptions = taskOptions;
+    }
 
-        /// <summary>
-        /// Gets or sets the time of day to trigger the task to run.
-        /// </summary>
-        /// <value>The time of day.</value>
-        public TimeSpan TimeOfDay { get; set; }
+    /// <inheritdoc />
+    public event EventHandler<EventArgs>? Triggered;
 
-        /// <summary>
-        /// Gets or sets the day of week.
-        /// </summary>
-        /// <value>The day of week.</value>
-        public DayOfWeek DayOfWeek { get; set; }
+    /// <inheritdoc />
+    public TaskOptions TaskOptions { get; }
 
-        /// <summary>
-        /// Gets or sets the options of this task.
-        /// </summary>
-        public TaskOptions TaskOptions { get; set; }
+    /// <inheritdoc />
+    public void Start(TaskResult? lastResult, ILogger logger, string taskName, bool isApplicationStartup)
+    {
+        DisposeTimer();
 
-        /// <summary>
-        /// Gets or sets the timer.
-        /// </summary>
-        /// <value>The timer.</value>
-        private Timer Timer { get; set; }
+        var triggerDate = GetNextTriggerDateTime();
 
-        /// <summary>
-        /// Stars waiting for the trigger action.
-        /// </summary>
-        /// <param name="lastResult">The last result.</param>
-        /// <param name="logger">The logger.</param>
-        /// <param name="taskName">The name of the task.</param>
-        /// <param name="isApplicationStartup">if set to <c>true</c> [is application startup].</param>
-        public void Start(TaskResult lastResult, ILogger logger, string taskName, bool isApplicationStartup)
+        _timer = new Timer(_ => OnTriggered(), null, triggerDate - DateTime.Now, TimeSpan.FromMilliseconds(-1));
+    }
+
+    /// <summary>
+    /// Gets the next trigger date time.
+    /// </summary>
+    /// <returns>DateTime.</returns>
+    private DateTime GetNextTriggerDateTime()
+    {
+        var now = DateTime.Now;
+
+        // If it's on the same day
+        if (now.DayOfWeek == _dayOfWeek)
         {
-            DisposeTimer();
-
-            var triggerDate = GetNextTriggerDateTime();
-
-            Timer = new Timer(state => OnTriggered(), null, triggerDate - DateTime.Now, TimeSpan.FromMilliseconds(-1));
+            // It's either later today, or a week from now
+            return now.TimeOfDay < _timeOfDay ? now.Date.Add(_timeOfDay) : now.Date.AddDays(7).Add(_timeOfDay);
         }
 
-        /// <summary>
-        /// Gets the next trigger date time.
-        /// </summary>
-        /// <returns>DateTime.</returns>
-        private DateTime GetNextTriggerDateTime()
+        var triggerDate = now.Date;
+
+        // Walk the date forward until we get to the trigger day
+        while (triggerDate.DayOfWeek != _dayOfWeek)
         {
-            var now = DateTime.Now;
-
-            // If it's on the same day
-            if (now.DayOfWeek == DayOfWeek)
-            {
-                // It's either later today, or a week from now
-                return now.TimeOfDay < TimeOfDay ? now.Date.Add(TimeOfDay) : now.Date.AddDays(7).Add(TimeOfDay);
-            }
-
-            var triggerDate = now.Date;
-
-            // Walk the date forward until we get to the trigger day
-            while (triggerDate.DayOfWeek != DayOfWeek)
-            {
-                triggerDate = triggerDate.AddDays(1);
-            }
-
-            // Return the trigger date plus the time offset
-            return triggerDate.Add(TimeOfDay);
+            triggerDate = triggerDate.AddDays(1);
         }
 
-        /// <summary>
-        /// Stops waiting for the trigger action.
-        /// </summary>
-        public void Stop()
+        // Return the trigger date plus the time offset
+        return triggerDate.Add(_timeOfDay);
+    }
+
+    /// <inheritdoc />
+    public void Stop()
+    {
+        DisposeTimer();
+    }
+
+    /// <summary>
+    /// Disposes the timer.
+    /// </summary>
+    private void DisposeTimer()
+    {
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    /// <summary>
+    /// Called when [triggered].
+    /// </summary>
+    private void OnTriggered()
+    {
+        Triggered?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_disposed)
         {
-            DisposeTimer();
+            return;
         }
 
-        /// <summary>
-        /// Disposes the timer.
-        /// </summary>
-        private void DisposeTimer()
-        {
-            if (Timer != null)
-            {
-                Timer.Dispose();
-            }
-        }
+        DisposeTimer();
 
-        /// <summary>
-        /// Called when [triggered].
-        /// </summary>
-        private void OnTriggered()
-        {
-            Triggered?.Invoke(this, EventArgs.Empty);
-        }
+        _disposed = true;
     }
 }

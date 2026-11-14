@@ -1,5 +1,3 @@
-#pragma warning disable CS1591
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,45 +6,35 @@ using MediaBrowser.Model.Querying;
 
 namespace MediaBrowser.Controller.Dto
 {
+    /// <summary>
+    /// Options that control which fields and images are populated when building a <see cref="MediaBrowser.Model.Dto.BaseItemDto"/>.
+    /// </summary>
     public class DtoOptions
     {
-        private static readonly ItemFields[] DefaultExcludedFields = new[]
-        {
+        private static readonly ItemFields[] DefaultExcludedFields =
+        [
             ItemFields.SeasonUserData,
             ItemFields.RefreshState
-        };
+        ];
 
-        public IReadOnlyList<ItemFields> Fields { get; set; }
+        private static readonly ImageType[] AllImageTypes = Enum.GetValues<ImageType>();
 
-        public IReadOnlyList<ImageType> ImageTypes { get; set; }
+        private static readonly ItemFields[] AllItemFields = Enum.GetValues<ItemFields>()
+            .Except(DefaultExcludedFields)
+            .ToArray();
 
-        public int ImageTypeLimit { get; set; }
-
-        public bool EnableImages { get; set; }
-
-        public bool AddProgramRecordingInfo { get; set; }
-
-        public bool EnableUserData { get; set; }
-
-        public bool AddCurrentProgram { get; set; }
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DtoOptions"/> class with all fields enabled.
+        /// </summary>
         public DtoOptions()
             : this(true)
         {
         }
 
-        private static readonly ImageType[] AllImageTypes = Enum.GetNames(typeof(ImageType))
-            .Select(i => (ImageType)Enum.Parse(typeof(ImageType), i, true))
-            .ToArray();
-
-        private static readonly ItemFields[] AllItemFields = Enum.GetNames(typeof(ItemFields))
-            .Select(i => (ItemFields)Enum.Parse(typeof(ItemFields), i, true))
-            .Except(DefaultExcludedFields)
-            .ToArray();
-
-        public bool ContainsField(ItemFields field)
-            => Fields.Contains(field);
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DtoOptions"/> class.
+        /// </summary>
+        /// <param name="allFields">Whether to populate all available fields.</param>
         public DtoOptions(bool allFields)
         {
             ImageTypeLimit = int.MaxValue;
@@ -54,10 +42,72 @@ namespace MediaBrowser.Controller.Dto
             EnableUserData = true;
             AddCurrentProgram = true;
 
-            Fields = allFields ? AllItemFields : Array.Empty<ItemFields>();
+            Fields = allFields ? AllItemFields : [];
             ImageTypes = AllImageTypes;
         }
 
+        /// <summary>
+        /// Gets options that populate nothing beyond the item's own stored columns.
+        /// </summary>
+        /// <remarks>
+        /// Each enabled field group is a collection the item query left-joins, so the rows returned are
+        /// the product of the item's provider, image and user data counts. Never use this for items that
+        /// get saved back: saving rewrites the owned rows from what the instance holds.
+        /// </remarks>
+        public static DtoOptions StoredColumnsOnly => new(false)
+        {
+            EnableImages = false,
+            EnableUserData = false
+        };
+
+        /// <summary>
+        /// Gets or sets the fields to populate on the DTO.
+        /// </summary>
+        public IReadOnlyList<ItemFields> Fields { get; set; }
+
+        /// <summary>
+        /// Gets or sets the image types to populate on the DTO.
+        /// </summary>
+        public IReadOnlyList<ImageType> ImageTypes { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum number of images to return per image type.
+        /// </summary>
+        public int ImageTypeLimit { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether image information is populated.
+        /// </summary>
+        public bool EnableImages { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether program recording information is populated.
+        /// </summary>
+        public bool AddProgramRecordingInfo { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether user data is populated.
+        /// </summary>
+        public bool EnableUserData { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the currently airing program is populated.
+        /// </summary>
+        public bool AddCurrentProgram { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the specified field is populated.
+        /// </summary>
+        /// <param name="field">The field to check.</param>
+        /// <returns><c>true</c> if the field is populated; otherwise, <c>false</c>.</returns>
+        public bool ContainsField(ItemFields field)
+            => Fields.Contains(field);
+
+        /// <summary>
+        /// Gets the number of images to return for the specified image type.
+        /// </summary>
+        /// <param name="type">The image type.</param>
+        /// <returns>The image limit for the type, or 0 if the type is not enabled.</returns>
         public int GetImageLimit(ImageType type)
         {
             if (EnableImages && ImageTypes.Contains(type))

@@ -1,3 +1,5 @@
+#nullable disable
+
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -28,5 +30,12 @@ namespace MediaBrowser.MediaEncoding.Probing
         /// <value>The chapters.</value>
         [JsonPropertyName("chapters")]
         public IReadOnlyList<MediaChapter> Chapters { get; set; }
+
+        /// <summary>
+        /// Gets or sets the frames.
+        /// </summary>
+        /// <value>The streams.</value>
+        [JsonPropertyName("frames")]
+        public IReadOnlyList<MediaFrameInfo> Frames { get; set; }
     }
 }

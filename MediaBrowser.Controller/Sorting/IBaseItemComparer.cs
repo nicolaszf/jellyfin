@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Entities;
 
 namespace MediaBrowser.Controller.Sorting
@@ -6,12 +7,11 @@ namespace MediaBrowser.Controller.Sorting
     /// <summary>
     /// Interface IBaseItemComparer.
     /// </summary>
-    public interface IBaseItemComparer : IComparer<BaseItem>
+    public interface IBaseItemComparer : IComparer<BaseItem?>
     {
         /// <summary>
-        /// Gets the name.
+        /// Gets the comparer type.
         /// </summary>
-        /// <value>The name.</value>
-        string Name { get; }
+        ItemSortBy Type { get; }
     }
 }

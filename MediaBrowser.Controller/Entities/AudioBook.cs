@@ -1,4 +1,6 @@
-#pragma warning disable CS1591
+#nullable disable
+
+#pragma warning disable CA1724, CS1591
 
 using System;
 using System.Text.Json.Serialization;
@@ -7,6 +9,7 @@ using MediaBrowser.Controller.Providers;
 
 namespace MediaBrowser.Controller.Entities
 {
+    [Common.RequiresSourceSerialisation]
     public class AudioBook : Audio.Audio, IHasSeries, IHasLookupInfo<SongInfo>
     {
         [JsonIgnore]

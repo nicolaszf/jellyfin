@@ -51,7 +51,7 @@ namespace MediaBrowser.LocalMetadata
 
             var file = GetXmlFile(info, directoryService);
 
-            if (file == null)
+            if (file is null)
             {
                 return Task.FromResult(result);
             }
@@ -91,14 +91,14 @@ namespace MediaBrowser.LocalMetadata
         /// <param name="info">Item inf.</param>
         /// <param name="directoryService">Instance of the <see cref="IDirectoryService"/> interface.</param>
         /// <returns>The file system metadata.</returns>
-        protected abstract FileSystemMetadata GetXmlFile(ItemInfo info, IDirectoryService directoryService);
+        protected abstract FileSystemMetadata? GetXmlFile(ItemInfo info, IDirectoryService directoryService);
 
         /// <inheritdoc />
         public bool HasChanged(BaseItem item, IDirectoryService directoryService)
         {
             var file = GetXmlFile(new ItemInfo(item), directoryService);
 
-            if (file == null)
+            if (file is null)
             {
                 return false;
             }
